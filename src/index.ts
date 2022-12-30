@@ -103,6 +103,9 @@ const plugin: Plugin = {
       if (!verifyEntry(newEntry)) {
         return;
       }
+      if (newEntry.data.length > 48) {
+        return;
+      }
       let entry = (await getEntry(newEntry.pk)) as SignedRegistryEntry;
 
       async function setAndRespond() {
