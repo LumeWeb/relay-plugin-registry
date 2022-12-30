@@ -1,0 +1,19 @@
+syntax = "proto2";
+
+message Query {
+    required bytes pubkey = 1;
+}
+
+enum MessageType {
+    CREATE = 1;
+    CREATED = 2;
+    RESPONSE = 3;
+}
+
+message Message {
+    required MessageType type = 1;
+    required bytes pubkey = 2;
+    required uint32 revision = 3;
+    required bytes data = 4;
+    required bytes signature = 5;
+}

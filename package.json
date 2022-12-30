@@ -1,0 +1,24 @@
+{
+    "name": "@lumeweb/relay-plugin-registry",
+    "type": "module",
+    "version": "0.1.0",
+    "scripts": {
+        "build": "rollup -c rollup.config.js"
+    },
+    "dependencies": {
+        "@lumeweb/dht-flood": "https://git.lumeweb.com/LumeWeb/dht-flood.git",
+        "@lumeweb/relay-plugin-rollup-preset": "https://git.lumeweb.com/LumeWeb/relay-plugin-rollup-preset.git",
+        "@lumeweb/relay-types": "https://git.lumeweb.com/LumeWeb/relay-types.git",
+        "@noble/ed25519": "^1.7.1",
+        "b4a": "^1.6.1",
+        "node-cache": "^5.1.2",
+        "object-merger": "^1.0.3"
+    },
+    "devDependencies": {
+        "@lumeweb/cfg": "https://git.lumeweb.com/LumeWeb/cfg.git",
+        "@protobuf-ts/plugin": "^2.8.2",
+        "@protobuf-ts/runtime": "^2.8.2",
+        "@types/node": "^18.11.18",
+        "prettier": "^2.8.1"
+    }
+}
