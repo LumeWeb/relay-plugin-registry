@@ -23,7 +23,7 @@ export function signEntry(
 export function createSignatureData(entry: SignedRegistryEntry): Uint8Array {
   return b4a.concat([
     encodeEndian(entry.revision, 8),
-    entry.data.length,
+    b4a.from([entry.data.length]),
     entry.data,
   ]);
 }
