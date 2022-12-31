@@ -6,7 +6,11 @@ import { sha512 } from "@noble/hashes/sha512";
 ed.utils.sha512Sync = (...m) => sha512(ed.utils.concatBytes(...m));
 
 export function verifyEntry(entry: SignedRegistryEntry) {
-  return ed.sync.verify(entry.signature, createSignatureData(entry), entry.pk);
+  return ed.sync.verify(
+    entry.signature,
+    createSignatureData(entry),
+    entry.pk.slice(1)
+  );
 }
 
 export function signEntry(
