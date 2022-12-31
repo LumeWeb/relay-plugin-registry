@@ -108,15 +108,15 @@ const plugin: Plugin = {
       }
       let entry = (await getEntry(newEntry.pk)) as SignedRegistryEntry;
 
-      async function setAndRespond() {
+      async function setAndRespond(entry: SignedRegistryEntry) {
         await setEntry(newEntry);
         sendDirectOrBroadcast(
           Message.create({
             type: MessageType.CREATED,
-            pubkey: newEntry.pk,
-            revision: newEntry.revision,
-            signature: newEntry.signature,
-            data: newEntry.data,
+            pubkey: entry.pk,
+            revision: entry.revision,
+            signature: entry.signature,
+            data: entry.data,
           }),
           origin
         );
@@ -124,11 +124,13 @@ const plugin: Plugin = {
 
       if (entry) {
         if (newEntry.revision <= entry.revision) {
-          setAndRespond();
+          setAndRespond(newEntry);
+          return;
         }
-      } else {
-        setAndRespond();
+        setAndRespond(entry);
+        return;
       }
+      setAndRespond(newEntry);
     });
 
     events.on("query", async (query: Query, origin: Buffer) => {
