@@ -91,10 +91,7 @@ const plugin: Plugin = {
     api = _api;
     setup();
 
-    if (
-      api.pluginConfig.bool("storememory") &&
-      !api.pluginConfig.bool("store")
-    ) {
+    if (api.pluginConfig.bool("store.memory")) {
       memStore = new NodeCache();
     }
 
