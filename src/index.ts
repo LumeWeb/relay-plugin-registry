@@ -40,7 +40,7 @@ function setup() {
 
     try {
       let query = Query.fromBinary(data);
-      events.emit("response", query, origin);
+      events.emit("query", query, origin);
     } catch {}
   });
 }
