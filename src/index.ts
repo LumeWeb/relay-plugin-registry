@@ -100,6 +100,9 @@ const plugin: Plugin = {
 
     events.on("create", async (message: Message, origin: Buffer) => {
       let newEntry = entryFromMessage(message);
+      if (!newEntry.signature?.length) {
+        return;
+      }
       if (!verifyEntry(newEntry)) {
         return;
       }
