@@ -109,19 +109,22 @@ const plugin: Plugin = {
       let entry = (await getEntry(newEntry.pk)) as SignedRegistryEntry;
 
       async function setAndRespond(entry: SignedRegistryEntry, set = true) {
+        let ret = true;
         if (set) {
-          await setEntry(newEntry);
+          ret = await setEntry(newEntry);
         }
-        sendDirectOrBroadcast(
-          Message.create({
-            type: MessageType.CREATED,
-            pubkey: entry.pk,
-            revision: entry.revision,
-            signature: entry.signature,
-            data: entry.data,
-          }),
-          origin
-        );
+        if (ret) {
+          sendDirectOrBroadcast(
+            Message.create({
+              type: MessageType.CREATED,
+              pubkey: entry.pk,
+              revision: entry.revision,
+              signature: entry.signature,
+              data: entry.data,
+            }),
+            origin
+          );
+        }
       }
 
       if (entry) {
