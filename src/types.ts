@@ -10,3 +10,10 @@ export interface SignedRegistryEntry {
   // signature of this registry entry
   signature?: Uint8Array;
 }
+
+export type RegistryStorageConstructor = new (opts?: any) => RegistryStorage;
+
+export interface RegistryStorage {
+  get(key: string): Promise<boolean | SignedRegistryEntry>;
+  set(key: string, value: SignedRegistryEntry): Promise<boolean>;
+}

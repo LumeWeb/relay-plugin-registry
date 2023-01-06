@@ -11,14 +11,15 @@
         "@lumeweb/relay-types": "https://git.lumeweb.com/LumeWeb/relay-types.git",
         "@noble/ed25519": "^1.7.1",
         "b4a": "^1.6.1",
-        "node-cache": "^5.1.2",
-        "object-merger": "^1.0.3"
+        "lmdb": "^2.7.3",
+        "node-cache": "^5.1.2"
     },
     "devDependencies": {
         "@lumeweb/cfg": "https://git.lumeweb.com/LumeWeb/cfg.git",
         "@protobuf-ts/plugin": "^2.8.2",
         "@protobuf-ts/runtime": "^2.8.2",
         "@types/node": "^18.11.18",
+        "hyperswarm": "^4.3.5",
         "prettier": "^2.8.1"
     }
 }

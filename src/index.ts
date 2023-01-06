@@ -1,18 +1,18 @@
 import type { Plugin, PluginAPI } from "@lumeweb/relay-types";
 import DHTFlood from "@lumeweb/dht-flood";
-import { Message, Query, MessageType } from "./messages.js";
+import { Message, MessageType, Query } from "./messages.js";
 import EventEmitter from "events";
-import NodeCache from "node-cache";
 import b4a from "b4a";
-import { SignedRegistryEntry } from "./types.js";
+import { RegistryStorage, SignedRegistryEntry } from "./types.js";
 import { verifyEntry } from "./utils.js";
+import { getStorage, hasStorage } from "./storage/index.js";
 
 const PROTOCOL = "lumeweb.registry";
 
 const events = new EventEmitter();
 let messenger: DHTFlood;
 let api: PluginAPI;
-let memStore: NodeCache;
+let store: RegistryStorage;
 
 function setup() {
   messenger = new DHTFlood({
@@ -45,6 +45,11 @@ function setup() {
   });
 }
 
+function setupEventHandlers() {
+  events.on("create", handleCreate);
+  events.on("query", handleQuery);
+}
+
 function entryFromMessage(message: Message): SignedRegistryEntry {
   return {
     pk: message.pubkey,
@@ -68,83 +73,25 @@ function sendDirectOrBroadcast(message: Message, pubkey: Buffer) {
 async function getEntry(
   pubkey: Uint8Array
 ): Promise<SignedRegistryEntry | boolean> {
-  let pubkeyHex = b4a.from(pubkey).toString("hex");
-  if (memStore) {
-    return await memStore.get<SignedRegistryEntry>(pubkeyHex);
-  }
-
-  return false;
+  return store.get(b4a.from(pubkey).toString("hex"));
 }
 
-async function setEntry(entry: SignedRegistryEntry): Promise<boolean> {
-  let pubkeyHex = b4a.from(entry.pk).toString("hex");
-  if (memStore) {
-    return await memStore.set<SignedRegistryEntry>(pubkeyHex, entry);
-  }
+async function handleCreate(message: Message, origin: Buffer) {
+  {
+    const setEntry = async (entry: SignedRegistryEntry): Promise<boolean> => {
+      let pubkeyHex = b4a.from(entry.pk).toString("hex");
 
-  return false;
-}
-
-const plugin: Plugin = {
-  name: "registry",
-  async plugin(_api: PluginAPI): Promise<void> {
-    api = _api;
-    setup();
-
-    if (api.pluginConfig.bool("store.memory")) {
-      memStore = new NodeCache();
-    }
-
-    events.on("create", async (message: Message, origin: Buffer) => {
-      let newEntry = entryFromMessage(message);
-      if (!newEntry.signature?.length) {
-        return;
+      return store.set(pubkeyHex, entry);
+    };
+    const setAndRespond = async (entry: SignedRegistryEntry, set = true) => {
+      let ret = true;
+      if (set) {
+        ret = await setEntry(newEntry);
       }
-      if (!verifyEntry(newEntry)) {
-        return;
-      }
-      if (newEntry.data.length > 48) {
-        return;
-      }
-      let entry = (await getEntry(newEntry.pk)) as SignedRegistryEntry;
-
-      async function setAndRespond(entry: SignedRegistryEntry, set = true) {
-        let ret = true;
-        if (set) {
-          ret = await setEntry(newEntry);
-        }
-        if (ret) {
-          sendDirectOrBroadcast(
-            Message.create({
-              type: MessageType.CREATED,
-              pubkey: entry.pk,
-              revision: entry.revision,
-              signature: entry.signature,
-              data: entry.data,
-            }),
-            origin
-          );
-        }
-      }
-
-      if (entry) {
-        if (newEntry.revision <= entry.revision) {
-          setAndRespond(newEntry);
-          return;
-        }
-        setAndRespond(entry, false);
-        return;
-      }
-      setAndRespond(newEntry);
-    });
-
-    events.on("query", async (query: Query, origin: Buffer) => {
-      let entry = (await getEntry(query.pubkey)) as SignedRegistryEntry;
-
-      if (entry) {
+      if (ret) {
         sendDirectOrBroadcast(
           Message.create({
-            type: MessageType.RESPONSE,
+            type: MessageType.CREATED,
             pubkey: entry.pk,
             revision: entry.revision,
             signature: entry.signature,
@@ -152,8 +99,67 @@ const plugin: Plugin = {
           }),
           origin
         );
+        api.logger.info("added entry %s", b4a.from(entry.pk).toString("hex"));
       }
-    });
+    };
+
+    let newEntry = entryFromMessage(message);
+    if (!newEntry.signature?.length) {
+      return;
+    }
+    if (!verifyEntry(newEntry)) {
+      return;
+    }
+    if (newEntry.data.length > 48) {
+      return;
+    }
+    let entry = (await getEntry(newEntry.pk)) as SignedRegistryEntry;
+
+    if (entry) {
+      if (newEntry.revision <= entry.revision) {
+        setAndRespond(newEntry);
+        return;
+      }
+      setAndRespond(entry, false);
+      return;
+    }
+    setAndRespond(newEntry);
+  }
+}
+
+async function handleQuery(query: Query, origin: Buffer) {
+  let entry = (await getEntry(query.pubkey)) as SignedRegistryEntry;
+
+  if (entry) {
+    sendDirectOrBroadcast(
+      Message.create({
+        type: MessageType.RESPONSE,
+        pubkey: entry.pk,
+        revision: entry.revision,
+        signature: entry.signature,
+        data: entry.data,
+      }),
+      origin
+    );
+  }
+}
+
+const plugin: Plugin = {
+  name: "registry",
+  async plugin(_api: PluginAPI): Promise<void> {
+    api = _api;
+
+    const storageType = api.pluginConfig.str("store.type");
+    const storageOptions = api.pluginConfig.str("store.type", {});
+    if (!hasStorage(storageType)) {
+      api.logger.error("Storage type %s does not exist", storageType);
+      return;
+    }
+
+    store = getStorage(storageType, { ...storageOptions, api });
+
+    setup();
+    setupEventHandlers();
   },
 };
 
